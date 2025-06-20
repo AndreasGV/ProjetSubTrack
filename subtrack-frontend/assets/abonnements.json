@@ -1,0 +1,249 @@
+[
+  {
+    "id": "netflix",
+    "name": "Netflix",
+    "category": "Streaming",
+    "logo": "https://upload.wikimedia.org/wikipedia/commons/thumb/0/08/Netflix_2015_logo.svg/200px-Netflix_2015_logo.svg.png",
+    "plans": [
+      {
+        "name": "Essentiel",
+        "price": 10.99,
+        "frequency": "mensuel"
+      },
+      {
+        "name": "Standard",
+        "price": 13.49,
+        "frequency": "mensuel"
+      },
+      {
+        "name": "Premium",
+        "price": 22.99,
+        "frequency": "mensuel"
+      }
+    ]
+  },
+  {
+    "id": "spotify",
+    "name": "Spotify",
+    "category": "Musique",
+    "logo": "https://upload.wikimedia.org/wikipedia/commons/thumb/2/26/Spotify_logo_with_text.svg/320px-Spotify_logo_with_text.svg.png",
+    "plans": [
+      {
+        "name": "Individuel",
+        "price": 10.99,
+        "frequency": "mensuel"
+      },
+      {
+        "name": "Duo",
+        "price": 14.99,
+        "frequency": "mensuel"
+      },
+      {
+        "name": "Famille",
+        "price": 17.99,
+        "frequency": "mensuel"
+      },
+      {
+        "name": "Étudiant",
+        "price": 5.99,
+        "frequency": "mensuel"
+      }
+    ]
+  },
+  {
+    "id": "disney",
+    "name": "Disney+",
+    "category": "Streaming",
+    "logo": "https://upload.wikimedia.org/wikipedia/commons/thumb/3/3e/Disney%2B_logo.svg/320px-Disney%2B_logo.svg.png",
+    "plans": [
+      {
+        "name": "Standard avec pub",
+        "price": 5.99,
+        "frequency": "mensuel"
+      },
+      {
+        "name": "Standard sans pub",
+        "price": 8.99,
+        "frequency": "mensuel"
+      },
+      {
+        "name": "Premium",
+        "price": 11.99,
+        "frequency": "mensuel"
+      },
+      {
+        "name": "Premium Annuel",
+        "price": 119.9,
+        "frequency": "annuel"
+      }
+    ]
+  },
+  {
+    "id": "prime",
+    "name": "Amazon Prime",
+    "category": "Streaming / Livraison",
+    "logo": "https://upload.wikimedia.org/wikipedia/commons/thumb/d/de/Amazon_Prime_Logo.svg/320px-Amazon_Prime_Logo.svg.png",
+    "plans": [
+      {
+        "name": "Mensuel",
+        "price": 6.99,
+        "frequency": "mensuel"
+      },
+      {
+        "name": "Annuel",
+        "price": 69.9,
+        "frequency": "annuel"
+      }
+    ]
+  },
+  {
+    "id": "apple-music",
+    "name": "Apple Music",
+    "category": "Musique",
+    "logo": "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d5/Apple_Music_icon.svg/320px-Apple_Music_icon.svg.png",
+    "plans": [
+      {
+        "name": "Individuel",
+        "price": 10.99,
+        "frequency": "mensuel"
+      },
+      {
+        "name": "Famille",
+        "price": 16.99,
+        "frequency": "mensuel"
+      },
+      {
+        "name": "Étudiant",
+        "price": 5.99,
+        "frequency": "mensuel"
+      }
+    ]
+  },
+  {
+    "id": "canalplus",
+    "name": "Canal+",
+    "category": "TV / Streaming",
+    "logo": "https://upload.wikimedia.org/wikipedia/commons/thumb/4/4b/Logo_Canal%2B_2013.svg/320px-Logo_Canal%2B_2013.svg.png",
+    "plans": [
+      {
+        "name": "Ciné Séries",
+        "price": 34.99,
+        "frequency": "mensuel"
+      },
+      {
+        "name": "Sport",
+        "price": 45.99,
+        "frequency": "mensuel"
+      },
+      {
+        "name": "Intégrale+",
+        "price": 89.9,
+        "frequency": "mensuel"
+      }
+    ]
+  },
+    {
+    "id": "hbo-max",
+    "name": "HBO Max",
+    "category": "Streaming",
+    "logo": "https://upload.wikimedia.org/wikipedia/commons/1/17/HBO_Max_Logo.svg",
+    "plans": [
+      {
+        "name": "Standard avec pub",
+        "price": 8.99,
+        "frequency": "mensuel"
+      },
+      {
+        "name": "Standard sans pub",
+        "price": 14.99,
+        "frequency": "mensuel"
+      },
+      {
+        "name": "Premium",
+        "price": 18.99,
+        "frequency": "mensuel"
+      },
+      {
+        "name": "Annuel",
+        "price": 199.99,
+        "frequency": "annuel"
+      }
+    ]
+  },
+  {
+    "id": "dropbox-pro",
+    "name": "Dropbox Professional",
+    "category": "Stockage",
+    "logo": "https://upload.wikimedia.org/wikipedia/commons/thumb/5/5c/Dropbox_logo_2017.svg/320px-Dropbox_logo_2017.svg.png",
+    "plans": [
+      {
+        "name": "Professionnel",
+        "price": 12.00,
+        "frequency": "mensuel"
+      },
+      {
+        "name": "Annuel",
+        "price": 120.00,
+        "frequency": "annuel"
+      }
+    ]
+  },
+  {
+    "id": "adobe-cc",
+    "name": "Adobe Creative Cloud",
+    "category": "Créativité",
+    "logo": "https://upload.wikimedia.org/wikipedia/commons/a/af/Adobe_Creative_Cloud_rainbow_icon.svg",
+    "plans": [
+      {
+        "name": "Toutes apps Mensuel",
+        "price": 24.19,
+        "frequency": "mensuel"
+      },
+      {
+        "name": "Toutes apps Annuel",
+        "price": 290.28,
+        "frequency": "annuel"
+      },
+      {
+        "name": "Photographie Mensuel",
+        "price": 11.98,
+        "frequency": "mensuel"
+      },
+      {
+        "name": "Photographie Annuel",
+        "price": 143.76,
+        "frequency": "annuel"
+      }
+    ]
+  },
+  {
+    "id": "gym-perso",
+    "name": "Salle de sport",
+    "category": "Fitness",
+    "logo": "https://upload.wikimedia.org/wikipedia/commons/thumb/7/78/Gym_icon.svg/256px-Gym_icon.svg.png",
+    "plans": [
+      { "name": "Perso", "price": 0, "frequency": "mensuel" },
+      { "name": "Perso Annuel", "price": 0, "frequency": "annuel" }
+    ]
+  },
+  {
+    "id": "assurance-auto",
+    "name": "Assurance auto",
+    "category": "Assurance",
+    "logo": "https://upload.wikimedia.org/wikipedia/commons/thumb/2/2a/Car_insurance_icon.svg/256px-Car_insurance_icon.svg.png",
+    "plans": [
+      { "name": "Perso", "price": 0, "frequency": "mensuel" },
+      { "name": "Perso Annuel", "price": 0, "frequency": "annuel" }
+    ]
+  },
+  {
+    "id": "assurance-sante",
+    "name": "Assurance santé",
+    "category": "Assurance",
+    "logo": "https://upload.wikimedia.org/wikipedia/commons/thumb/c/c3/Health_insurance_icon.svg/256px-Health_insurance_icon.svg.png",
+    "plans": [
+      { "name": "Perso", "price": 0, "frequency": "mensuel" },
+      { "name": "Perso Annuel", "price": 0, "frequency": "annuel" }
+    ]
+  } 
+]
