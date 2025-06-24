@@ -5,162 +5,265 @@ import {
   FlatList,
   Image,
   StyleSheet,
-  TouchableOpacity,
   Alert,
+  TouchableOpacity,
 } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useIsFocused } from '@react-navigation/native';
-import abonnementsData from '../assets/abonnements.json';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
+import { Ionicons } from '@expo/vector-icons';
+import { supabase } from '../supabaseClient';
+import { logoMap } from '../assets/logoMap';
 
-export default function HomeScreen({ navigation }) {
+export default function HomeScreen() {
   const [abonnements, setAbonnements] = useState([]);
-  const isFocused = useIsFocused();
+  const [total, setTotal] = useState(0);
+  const [suggestions, setSuggestions] = useState([]);
+  const [userId, setUserId] = useState(null);
+  const [sortBy, setSortBy] = useState('');
+  const [sortOrder, setSortOrder] = useState('asc');
+  const navigation = useNavigation();
 
   useEffect(() => {
-    const loadAbonnements = async () => {
-      try {
-        const data = await AsyncStorage.getItem('abonnements');
-        const parsed = data ? JSON.parse(data) : [];
-        const sorted = parsed.sort((a, b) => parseInt(a.paymentDay) - parseInt(b.paymentDay));
-        setAbonnements(sorted);
-      } catch (e) {
-        console.error("Erreur chargement", e);
+    const fetchUser = async () => {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      if (session) {
+        setUserId(session.user.id);
+        fetchAbonnements(session.user.id);
+        fetchSuggestions();
       }
     };
-    if (isFocused) loadAbonnements();
-  }, [isFocused]);
+    fetchUser();
+  }, []);
 
-  const handleDelete = (index) => {
-    Alert.alert('Supprimer', 'Confirmer la suppression ?', [
-      { text: 'Annuler' },
-      {
-        text: 'Supprimer', style: 'destructive', onPress: async () => {
-          const newList = [...abonnements];
-          newList.splice(index, 1);
-          setAbonnements(newList);
-          await AsyncStorage.setItem('abonnements', JSON.stringify(newList));
-        }
+  useFocusEffect(
+    React.useCallback(() => {
+      if (userId) {
+        fetchAbonnements(userId);
       }
+    }, [userId])
+  );
+
+  const fetchAbonnements = async (uid) => {
+    const { data, error } = await supabase
+      .from('abonnements_utilisateurs')
+      .select('*, abonnements(*)')
+      .eq('user_id', uid);
+
+    if (error) {
+      console.log('Erreur récupération abonnements :', error);
+      return;
+    }
+
+    setAbonnements(data);
+    const totalEstime = data.reduce((sum, item) => sum + (item.plan_price || 0), 0);
+    setTotal(totalEstime);
+  };
+
+  const fetchSuggestions = async () => {
+    const { data, error } = await supabase.from('abonnements').select('*').limit(10);
+    if (error) {
+      console.log('Erreur suggestions :', error);
+      return;
+    }
+    setSuggestions(data);
+  };
+
+  const handleEdit = (abonnement) => {
+    navigation.navigate('EditSubscriptionScreen', { abonnement });
+  };
+
+  const handleDelete = async (id) => {
+    Alert.alert('Confirmation', 'Supprimer cet abonnement ?', [
+      { text: 'Annuler', style: 'cancel' },
+      {
+        text: 'Supprimer',
+        style: 'destructive',
+        onPress: async () => {
+          const { error } = await supabase
+            .from('abonnements_utilisateurs')
+            .delete()
+            .eq('id', id);
+          if (error) {
+            Alert.alert('Erreur', error.message);
+          } else {
+            fetchAbonnements(userId);
+          }
+        },
+      },
     ]);
   };
 
-  const handleEdit = (item) => {
-    const abonnementBase = abonnementsData.find((a) => a.name === item.name);
-
-    navigation.navigate('ChoosePlan', {
-      ...item,
-      plans: abonnementBase?.plans || [
-        { name: item.planName, price: item.planPrice, frequency: 'mensuel' }
-      ],
-      type: 'fixe',
-      editIndex: abonnements.findIndex((a) => a.id === item.id),
+  const sortData = (key) => {
+    const newOrder = sortBy === key && sortOrder === 'asc' ? 'desc' : 'asc';
+    setSortBy(key);
+    setSortOrder(newOrder);
+    const sorted = [...abonnements].sort((a, b) => {
+      if (key === 'name') {
+        return newOrder === 'asc'
+          ? a.abonnements?.name.localeCompare(b.abonnements?.name)
+          : b.abonnements?.name.localeCompare(a.abonnements?.name);
+      } else if (key === 'price') {
+        return newOrder === 'asc'
+          ? a.plan_price - b.plan_price
+          : b.plan_price - a.plan_price;
+      } else if (key === 'day') {
+        return newOrder === 'asc'
+          ? a.payment_day - b.payment_day
+          : b.payment_day - a.payment_day;
+      }
+      return 0;
     });
+    setAbonnements(sorted);
   };
 
-  const totalMensuel = abonnements.reduce((sum, a) => {
-  const price = parseFloat(a.planPrice || 0);
-  const isAnnuel = a.planName?.toLowerCase().includes('annuel');
-  return sum + (isAnnuel ? price / 12 : price);
-}, 0).toFixed(2);
-
-  const renderItem = ({ item, index }) => (
-    <TouchableOpacity onPress={() => handleEdit(item)} style={styles.card}>
-      <Image source={{ uri: item.logo }} style={styles.logo} />
-      <View style={{ flex: 1 }}>
-        <Text style={styles.name}>{item.name}</Text>
-        <Text>{item.planName} - {item.planPrice}€</Text>
-        <Text>Jour de paiement : {item.paymentDay}</Text>
+  const renderAbonnement = ({ item }) => (
+    <View style={styles.abonnementItem}>
+      <Image
+        source={
+          logoMap[item.abonnements?.id]
+            ? logoMap[item.abonnements.id]
+            : require('../assets/logo.png')
+        }
+        style={styles.logo}
+        resizeMode="contain"
+      />
+      <View style={styles.abonnementInfo}>
+        <Text style={styles.name}>{item.abonnements?.name || 'Abonnement'}</Text>
+        <Text>{item.plan_name} - {item.plan_price}€</Text>
+        <Text style={styles.jourPaiement}>💳 Paiement le {item.payment_day}</Text>
       </View>
-      <TouchableOpacity onPress={() => handleDelete(index)}>
-        <Text style={styles.delete}>✕</Text>
-      </TouchableOpacity>
-    </TouchableOpacity>
+      <View style={styles.actions}>
+        <TouchableOpacity onPress={() => handleEdit(item)} style={{ marginRight: 8 }}>
+          <Ionicons name="create-outline" size={20} color="black" />
+        </TouchableOpacity>
+        <TouchableOpacity onPress={() => handleDelete(item.id)}>
+          <Ionicons name="close-outline" size={24} color="red" />
+        </TouchableOpacity>
+      </View>
+    </View>
   );
 
-  const userServices = abonnements.map(a => a.category);
-  const recommandations = abonnementsData.filter(a =>
-    !abonnements.find(ab => ab.name === a.name) && !userServices.includes(a.category)
-  ).slice(0, 5);
+  const renderSuggestion = ({ item }) => (
+    <View style={styles.suggestionCard}>
+      <Image
+        source={
+          logoMap[item.id] ? logoMap[item.id] : require('../assets/logo.png')
+        }
+        style={styles.suggestionLogo}
+        resizeMode="contain"
+      />
+      <Text style={styles.suggestionName}>{item.name}</Text>
+      <Text style={styles.suggestionCategory}>{item.category}</Text>
+    </View>
+  );
+
+  const getArrow = (key) => sortBy === key ? (sortOrder === 'asc' ? '↑' : '↓') : '';
 
   return (
     <View style={styles.container}>
       <Text style={styles.title}>📅 Mes abonnements actifs</Text>
-      <Text style={styles.total}>Total mensuel estimé : {totalMensuel}€</Text>
-      <FlatList
-        data={abonnements}
-        keyExtractor={(item, index) => index.toString()}
-        renderItem={renderItem}
-        contentContainerStyle={{ paddingBottom: 40 }}
-        ListEmptyComponent={<Text style={{ marginTop: 50 }}>Aucun abonnement enregistré</Text>}
-      />
+      <View style={styles.filterRow}>
+        <TouchableOpacity
+          style={[styles.filterButton, sortBy === 'price' && styles.activeFilter]}
+          onPress={() => sortData('price')}
+        >
+          <Text style={styles.filterText}>€ {getArrow('price')}</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.filterButton, sortBy === 'name' && styles.activeFilter]}
+          onPress={() => sortData('name')}
+        >
+          <Text style={styles.filterText}>Nom {getArrow('name')}</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.filterButton, sortBy === 'day' && styles.activeFilter]}
+          onPress={() => sortData('day')}
+        >
+          <Text style={styles.filterText}>Jour {getArrow('day')}</Text>
+        </TouchableOpacity>
+      </View>
 
-      {recommandations.length > 0 && (
-        <>
-          <Text style={styles.recoTitle}>Suggestions personnalisées</Text>
-          <FlatList
-            horizontal
-            data={recommandations}
-            keyExtractor={(item) => item.id}
-            renderItem={({ item }) => (
-              <View style={styles.recoCard}>
-                <Image source={{ uri: item.logo }} style={styles.recoLogo} />
-                <Text style={styles.recoName}>{item.name}</Text>
-                <Text style={styles.recoCat}>{item.category}</Text>
-              </View>
-            )}
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={{ paddingVertical: 10 }}
-          />
-        </>
+      <Text style={styles.total}>Total mensuel estimé : {total.toFixed(2)}€</Text>
+
+      {abonnements.length === 0 ? (
+        <Text style={styles.empty}>Aucun abonnement enregistré</Text>
+      ) : (
+        <FlatList
+          data={abonnements}
+          renderItem={renderAbonnement}
+          keyExtractor={(item) => item.id.toString()}
+          style={styles.list}
+        />
       )}
+
+      <Text style={styles.subtitle}>Suggestions personnalisées</Text>
+      <FlatList
+        data={suggestions}
+        horizontal
+        renderItem={renderSuggestion}
+        keyExtractor={(item) => item.id.toString()}
+        style={styles.suggestionsList}
+      />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, paddingTop: 50, paddingHorizontal: 20 },
-  title: { fontSize: 22, fontWeight: 'bold', marginBottom: 10 },
-  total: { fontSize: 16, marginBottom: 20, color: '#444' },
-  card: {
+  container: { flex: 1, padding: 16, paddingTop: 70 },
+  title: { fontSize: 24, fontWeight: 'bold', marginBottom: 4 },
+  total: { fontSize: 18, marginBottom: 10 },
+  empty: { fontStyle: 'italic', color: 'gray' },
+  list: { marginTop: 16 },
+  abonnementItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 15,
+    marginBottom: 12,
     backgroundColor: '#f9f9f9',
-    padding: 12,
-    borderRadius: 10,
-    borderColor: '#ddd',
-    borderWidth: 1
-  },
-  logo: {
-    width: 50,
-    height: 50,
-    marginRight: 10,
-    resizeMode: 'contain',
-    borderRadius: 10,
-    backgroundColor: '#fff'
-  },
-  name: { fontWeight: 'bold', fontSize: 16 },
-  delete: { fontSize: 20, color: 'red', paddingLeft: 10 },
-  recoTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginTop: 20,
-    marginBottom: 10
-  },
-  recoCard: {
-    width: 140,
-    backgroundColor: '#f5f5f5',
-    borderRadius: 10,
     padding: 10,
-    marginRight: 12,
-    alignItems: 'center'
+    borderRadius: 8,
+    borderColor: '#008b53',
+    borderWidth: 1,
   },
-  recoLogo: {
-    width: 40,
-    height: 40,
-    resizeMode: 'contain',
-    marginBottom: 8
+  logo: { width: 40, height: 40, marginRight: 10 },
+  abonnementInfo: { flex: 1 },
+  name: { fontWeight: 'bold', fontSize: 16 },
+  jourPaiement: { fontSize: 12, color: 'gray', marginTop: 2 },
+  subtitle: { marginTop: 24, fontSize: 20, fontWeight: '600' },
+  suggestionsList: { marginTop: 12 },
+  suggestionCard: {
+    width: 120,
+    padding: 10,
+    backgroundColor: '#f5f5f5',
+    borderRadius: 8,
+    marginRight: 10,
+    alignItems: 'center',
   },
-  recoName: { fontWeight: 'bold', fontSize: 14, marginBottom: 4 },
-  recoCat: { fontSize: 12, color: '#666' }
+  suggestionLogo: { width: 40, height: 40, marginBottom: 6 },
+  suggestionName: { fontWeight: 'bold', textAlign: 'center' },
+  suggestionCategory: { fontSize: 12, color: 'gray', textAlign: 'center' },
+  actions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginLeft: 'auto',
+  },
+  filterRow: {
+    flexDirection: 'row',
+    marginBottom: 8,
+    gap: 8,
+    marginTop: 8,
+  },
+  filterButton: {
+    backgroundColor: '#eee',
+    paddingVertical: 4,
+    paddingHorizontal: 10,
+    borderRadius: 12,
+  },
+  activeFilter: {
+    backgroundColor: '#008b53',
+  },
+  filterText: {
+    color: '#000',
+    fontWeight: 'bold',
+  },
 });

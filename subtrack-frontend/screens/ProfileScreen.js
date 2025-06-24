@@ -1,23 +1,29 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Image, ScrollView, SafeAreaView, Alert } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { supabase } from '../supabaseClient';
 
 export default function ProfileScreen({ navigation }) {
   const [email, setEmail] = useState('');
 
   useEffect(() => {
-    const fetchEmail = async () => {
-      const token = await AsyncStorage.getItem('token');
-      if (token) {
-        const decoded = JSON.parse(atob(token.split('.')[1]));
-        setEmail(decoded.email);
+    const fetchUser = async () => {
+      const {
+        data: { user },
+        error,
+      } = await supabase.auth.getUser();
+
+      if (user) {
+        setEmail(user.email);
+      } else {
+        console.error('Erreur récupération utilisateur', error);
       }
     };
-    fetchEmail();
+
+    fetchUser();
   }, []);
 
   const handleLogout = async () => {
-    await AsyncStorage.removeItem('token');
+    await supabase.auth.signOut();
     navigation.replace('Login');
   };
 
@@ -29,8 +35,9 @@ export default function ProfileScreen({ navigation }) {
     <SafeAreaView style={styles.container}>
       <ScrollView contentContainerStyle={styles.scroll}>
         <Image
-          source={{ uri: 'https://cdn-icons-png.flaticon.com/512/847/847969.png' }}
+          source={require('../assets/logo.png')}
           style={styles.avatar}
+          resizeMode="contain"
         />
         <Text style={styles.title}>Profil</Text>
         <View style={styles.infoBlock}>
@@ -66,10 +73,9 @@ const styles = StyleSheet.create({
     paddingBottom: 100,
   },
   avatar: {
-    width: 80,
-    height: 80,
+    width: 120,
+    height: 120,
     alignSelf: 'center',
-    borderRadius: 40,
     marginBottom: 15,
   },
   title: {
@@ -102,7 +108,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
   },
   premiumButton: {
-    backgroundColor: '#FFD700',
+    backgroundColor: '#008b53', // VERT
     padding: 16,
     borderRadius: 12,
     marginBottom: 12,
@@ -111,7 +117,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     fontSize: 16,
     fontWeight: 'bold',
-    color: '#333',
+    color: '#fff',
   },
   logoutButton: {
     backgroundColor: '#fff',

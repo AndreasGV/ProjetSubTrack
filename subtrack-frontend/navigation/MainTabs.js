@@ -12,7 +12,13 @@ const Tab = createBottomTabNavigator();
 
 export default function MainTabs() {
   return (
-    <Tab.Navigator screenOptions={{ headerShown: false }}>
+    <Tab.Navigator
+      screenOptions={{
+        headerShown: false,
+        tabBarActiveTintColor: '#008b53', // icônes actives en vert
+        tabBarInactiveTintColor: 'gray',  // icônes inactives en gris
+      }}
+    >
       <Tab.Screen
         name="Accueil"
         component={HomeScreen}

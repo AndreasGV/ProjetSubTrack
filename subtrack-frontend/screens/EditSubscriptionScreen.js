@@ -1,48 +1,54 @@
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, FlatList, StyleSheet, TextInput, Alert } from 'react-native';
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  FlatList,
+  TextInput,
+  Alert,
+  StyleSheet,
+} from 'react-native';
 import { useRoute, useNavigation } from '@react-navigation/native';
 import { supabase } from '../supabaseClient';
 
-export default function ChoosePlanScreen() {
+export default function EditSubscriptionScreen() {
   const route = useRoute();
   const navigation = useNavigation();
-  const { id, name, logo, category, plans } = route.params;
+  const { abonnement } = route.params;
 
-  const [selectedPlan, setSelectedPlan] = useState(plans[0]);
-  const [day, setDay] = useState('');
+  const { id, abonnement_id, plan_name, plan_price, payment_day, abonnements } = abonnement;
+  const { name, plans } = abonnements;
 
-  const handleSubmit = async () => {
-    const { data: userData, error: userError } = await supabase.auth.getUser();
-    if (userError || !userData?.user) {
-      Alert.alert('Erreur', 'Utilisateur non connecté.');
-      return;
-    }
+  const [selectedPlan, setSelectedPlan] = useState(
+    plans.find((plan) => plan.name === plan_name) || plans[0]
+  );
+  const [day, setDay] = useState(payment_day.toString());
 
+  const handleUpdate = async () => {
     if (!day || isNaN(day) || parseInt(day) < 1 || parseInt(day) > 31) {
       Alert.alert('Erreur', 'Jour de paiement invalide (1 à 31).');
       return;
     }
 
-    const { error } = await supabase.from('abonnements_utilisateurs').insert([
-      {
-        user_id: userData.user.id,
-        abonnement_id: id,
+    const { error } = await supabase
+      .from('abonnements_utilisateurs')
+      .update({
         plan_name: selectedPlan.name,
         plan_price: selectedPlan.price,
         payment_day: parseInt(day, 10),
-      },
-    ]);
+      })
+      .eq('id', id);
 
     if (error) {
-      Alert.alert("Erreur", "Échec de l'enregistrement.");
+      Alert.alert("Erreur", "Impossible de modifier l'abonnement.");
     } else {
-      navigation.navigate('Main');
+      navigation.goBack();
     }
   };
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Choisir un plan pour {name}</Text>
+      <Text style={styles.title}>Modifier {name}</Text>
 
       <FlatList
         data={plans}
@@ -71,8 +77,8 @@ export default function ChoosePlanScreen() {
         style={styles.input}
       />
 
-      <TouchableOpacity style={styles.button} onPress={handleSubmit}>
-        <Text style={styles.buttonText}>Ajouter l’abonnement</Text>
+      <TouchableOpacity style={styles.button} onPress={handleUpdate}>
+        <Text style={styles.buttonText}>Modifier l’abonnement</Text>
       </TouchableOpacity>
     </View>
   );

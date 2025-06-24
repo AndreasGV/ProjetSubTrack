@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { View, TextInput, Button, Text, StyleSheet, Alert, Image } from 'react-native';
-import axios from 'axios';
+import { supabase } from '../supabaseClient'; 
 
 export default function RegisterScreen({ navigation }) {
   const [email, setEmail] = useState('');
@@ -8,34 +8,29 @@ export default function RegisterScreen({ navigation }) {
   const [message, setMessage] = useState('');
 
   const handleRegister = async () => {
-    console.log('Tentative inscription avec :', email, password);
-
     if (!email || !password) {
       Alert.alert('Erreur', 'Merci de remplir tous les champs');
       return;
     }
 
-    try {
-      const res = await axios.post('http://10.2.106.112:3000/api/auth/register', {
-        email,
-        password,
-      });
+    const { data, error } = await supabase.auth.signUp({ email, password });
 
-      console.log('Réponse backend :', res.data);
+    if (error) {
+      console.log('Erreur Supabase :', error.message);
+      setMessage("Erreur d'inscription ❌");
+      Alert.alert('Erreur', error.message);
+    } else {
+      console.log('Inscription réussie :', data);
       setMessage('Compte créé ✅');
       Alert.alert('Succès', 'Compte créé ! Vous pouvez vous connecter.');
       navigation.navigate('Login');
-    } catch (err) {
-      console.log('Erreur API register :', err.response?.data || err.message);
-      Alert.alert('Erreur', err.response?.data?.message || "Erreur d'inscription ❌");
-      setMessage("Erreur d'inscription ❌");
     }
   };
 
   return (
     <View style={styles.container}>
       <Image
-        source={require('../assets/logo.png')} 
+        source={require('../assets/logo.png')}
         style={styles.logo}
         resizeMode="contain"
       />
