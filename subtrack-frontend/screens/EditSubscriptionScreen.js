@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { useRoute, useNavigation } from '@react-navigation/native';
 import { supabase } from '../supabaseClient';
+import { Ionicons } from '@expo/vector-icons';
 
 export default function EditSubscriptionScreen() {
   const route = useRoute();
@@ -48,6 +49,14 @@ export default function EditSubscriptionScreen() {
 
   return (
     <View style={styles.container}>
+      {/* Bouton retour */}
+      <TouchableOpacity
+        onPress={() => navigation.goBack()}
+        style={styles.backButton}
+      >
+        <Ionicons name="arrow-back" size={24} color="black" />
+      </TouchableOpacity>
+
       <Text style={styles.title}>Modifier {name}</Text>
 
       <FlatList
@@ -85,8 +94,17 @@ export default function EditSubscriptionScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { padding: 20, paddingTop: 50, flex: 1 },
-  title: { fontSize: 22, fontWeight: 'bold', marginBottom: 20 },
+  container: { padding: 20, paddingTop: 80, flex: 1 },
+  backButton: {
+    position: 'absolute',
+    top: 50,
+    left: 20,
+    zIndex: 10,
+    backgroundColor: '#eee',
+    padding: 8,
+    borderRadius: 30,
+  },
+  title: { fontSize: 22, fontWeight: 'bold', marginBottom: 20, marginTop: 10 },
   plan: {
     padding: 15,
     borderRadius: 10,

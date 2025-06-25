@@ -7,11 +7,13 @@ import {
   StyleSheet,
   Alert,
   TouchableOpacity,
+  Linking,
 } from 'react-native';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../supabaseClient';
 import { logoMap } from '../assets/logoMap';
+import { Swipeable } from 'react-native-gesture-handler';
 
 export default function HomeScreen() {
   const [abonnements, setAbonnements] = useState([]);
@@ -30,7 +32,7 @@ export default function HomeScreen() {
       if (session) {
         setUserId(session.user.id);
         fetchAbonnements(session.user.id);
-        fetchSuggestions();
+        fetchSuggestions(session.user.id);
       }
     };
     fetchUser();
@@ -56,12 +58,20 @@ export default function HomeScreen() {
     }
 
     setAbonnements(data);
-    const totalEstime = data.reduce((sum, item) => sum + (item.plan_price || 0), 0);
+    const totalEstime = data.reduce((sum, item) => {
+      const rawPrice = parseFloat(item.plan_price) || 0;
+      const isAnnuel = item.plan_name?.toLowerCase().includes('annuel');
+      const monthlyPrice = isAnnuel ? rawPrice / 12 : rawPrice;
+      return sum + monthlyPrice;
+    }, 0);
     setTotal(totalEstime);
   };
 
-  const fetchSuggestions = async () => {
-    const { data, error } = await supabase.from('abonnements').select('*').limit(10);
+  const fetchSuggestions = async (uid) => {
+    const { data, error } = await supabase.rpc('suggest_abonnements', {
+      p_user_id: uid,
+    });
+
     if (error) {
       console.log('Erreur suggestions :', error);
       return;
@@ -118,38 +128,52 @@ export default function HomeScreen() {
   };
 
   const renderAbonnement = ({ item }) => (
-    <View style={styles.abonnementItem}>
-      <Image
-        source={
-          logoMap[item.abonnements?.id]
-            ? logoMap[item.abonnements.id]
-            : require('../assets/logo.png')
-        }
-        style={styles.logo}
-        resizeMode="contain"
-      />
-      <View style={styles.abonnementInfo}>
-        <Text style={styles.name}>{item.abonnements?.name || 'Abonnement'}</Text>
-        <Text>{item.plan_name} - {item.plan_price}€</Text>
-        <Text style={styles.jourPaiement}>💳 Paiement le {item.payment_day}</Text>
-      </View>
-      <View style={styles.actions}>
-        <TouchableOpacity onPress={() => handleEdit(item)} style={{ marginRight: 8 }}>
-          <Ionicons name="create-outline" size={20} color="black" />
+    <Swipeable
+      renderRightActions={() => (
+        <TouchableOpacity
+          onPress={() => handleDelete(item.id)}
+          style={styles.swipeDeleteButton}
+        >
+          <Ionicons name="trash-outline" size={24} color="white" />
+          <Text style={styles.swipeDeleteText}>Supprimer</Text>
         </TouchableOpacity>
-        <TouchableOpacity onPress={() => handleDelete(item.id)}>
-          <Ionicons name="close-outline" size={24} color="red" />
-        </TouchableOpacity>
+      )}
+    >
+      <View style={styles.abonnementItem}>
+        <Image
+          source={logoMap[item.abonnements?.id] || require('../assets/logo.png')}
+          style={styles.logo}
+          resizeMode="contain"
+        />
+        <View style={styles.abonnementInfo}>
+          <Text style={styles.name}>{item.abonnements?.name || 'Abonnement'}</Text>
+          <Text>{item.plan_name} - {item.plan_price}€</Text>
+          <Text style={styles.jourPaiement}>💳 Paiement le {item.payment_day}</Text>
+        </View>
+        <View style={styles.actions}>
+          {item.abonnements?.unsubscribe_link && (
+            <TouchableOpacity
+              onPress={() => Linking.openURL(item.abonnements.unsubscribe_link)}
+              style={{ marginRight: 8 }}
+            >
+              <Ionicons name="exit-outline" size={20} color="#008b53" />
+            </TouchableOpacity>
+          )}
+          <TouchableOpacity onPress={() => handleEdit(item)} style={{ marginRight: 8 }}>
+            <Ionicons name="create-outline" size={20} color="black" />
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => handleDelete(item.id)}>
+            <Ionicons name="close-outline" size={24} color="red" />
+          </TouchableOpacity>
+        </View>
       </View>
-    </View>
+    </Swipeable>
   );
 
   const renderSuggestion = ({ item }) => (
     <View style={styles.suggestionCard}>
       <Image
-        source={
-          logoMap[item.id] ? logoMap[item.id] : require('../assets/logo.png')
-        }
+        source={logoMap[item.id] || require('../assets/logo.png')}
         style={styles.suggestionLogo}
         resizeMode="contain"
       />
@@ -204,6 +228,7 @@ export default function HomeScreen() {
         renderItem={renderSuggestion}
         keyExtractor={(item) => item.id.toString()}
         style={styles.suggestionsList}
+        contentContainerStyle={{ paddingBottom: 20 }}
       />
     </View>
   );
@@ -265,5 +290,19 @@ const styles = StyleSheet.create({
   filterText: {
     color: '#000',
     fontWeight: 'bold',
+  },
+  swipeDeleteButton: {
+    backgroundColor: 'red',
+    justifyContent: 'center',
+    alignItems: 'center',
+    width: 100,
+    borderRadius: 12,
+    marginVertical: 6,
+    padding: 10,
+  },
+  swipeDeleteText: {
+    color: 'white',
+    fontWeight: 'bold',
+    marginTop: 4,
   },
 });

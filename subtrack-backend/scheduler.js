@@ -7,7 +7,7 @@ async function checkAndNotify() {
   const tomorrow = moment().add(1, 'days').date(); 
 
   const { data: abonnements, error } = await supabase
-    .from('user_abonnements')
+    .from('abonnements_utilisateurs')
     .select('id, user_id, abonnement_id, plan_name, plan_price, payment_day')
     .eq('payment_day', tomorrow);
 
