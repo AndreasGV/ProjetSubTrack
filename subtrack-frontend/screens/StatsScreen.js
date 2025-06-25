@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, Dimensions, ScrollView } from 'react-native';
-import { PieChart, LineChart } from 'react-native-chart-kit';
+import { PieChart } from 'react-native-chart-kit';
 import { supabase } from '../supabaseClient';
+import { useFocusEffect } from '@react-navigation/native';
 
 const screenWidth = Dimensions.get('window').width;
 
@@ -9,67 +10,62 @@ export default function StatsScreen() {
   const [abonnements, setAbonnements] = useState({});
   const [totalMensuel, setTotalMensuel] = useState(0);
   const [totalAnnuel, setTotalAnnuel] = useState(0);
-  const [monthlySpending, setMonthlySpending] = useState([]);
-  const [classement, setClassement] = useState([]);
 
-  useEffect(() => {
-    const fetchData = async () => {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
+  const fetchData = async () => {
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
 
-      if (!session?.user?.id) return;
+    if (!session?.user?.id) return;
 
-      const { data, error } = await supabase
-        .from('abonnements_utilisateurs')
-        .select('*, abonnements(name)')
-        .eq('user_id', session.user.id);
+    const { data } = await supabase
+      .from('abonnements_utilisateurs')
+      .select('*, abonnements(name)')
+      .eq('user_id', session.user.id);
 
-      if (data) {
-        const grouped = {};
-        let month = 0;
-        let year = 0;
+    if (data) {
+      const grouped = {};
+      let month = 0;
+      let year = 0;
 
-        data.forEach((a) => {
-          const price = parseFloat(a.plan_price || 0);
-          const isAnnuel = a.plan_name?.toLowerCase().includes('annuel');
-          const name = a.abonnements?.name || a.plan_name;
+      data.forEach((a) => {
+        const rawPrice = parseFloat(a.plan_price);
+        const price = isNaN(rawPrice) ? 0 : rawPrice;
+        const isAnnuel = a.plan_name?.toLowerCase().includes('annuel');
+        const serviceName = a.abonnements?.name || a.plan_name || 'Inconnu';
 
-          const monthly = isAnnuel ? price / 12 : price;
+        const monthlyPrice = isAnnuel ? price / 12 : price;
 
-          if (!grouped[name]) grouped[name] = 0;
-          grouped[name] += monthly;
+        if (!grouped[serviceName]) grouped[serviceName] = 0;
+        grouped[serviceName] += monthlyPrice;
 
-          month += monthly;
-          year += isAnnuel ? price : price * 12;
-        });
+        month += monthlyPrice;
+        year += isAnnuel ? price : price * 12;
+      });
 
-        setAbonnements(grouped);
-        setTotalMensuel(month);
-        setTotalAnnuel(year);
+      setAbonnements(grouped);
+      setTotalMensuel(month);
+      setTotalAnnuel(year);
+    }
+  };
 
-        const sorted = Object.entries(grouped)
-          .sort(([, a], [, b]) => b - a)
-          .map(([name, value]) => ({ name, price: value }));
-        setClassement(sorted);
-
-        // Exemple de mise à jour des dépenses mensuelles (remplacé par API Supabase dans la vraie app)
-        setMonthlySpending([0, 0, 0, 0, 0, 0, month]);
-      }
-    };
-
-    fetchData();
-  }, []);
+  useFocusEffect(
+    React.useCallback(() => {
+      fetchData();
+    }, [])
+  );
 
   const colors = ['#FF6384', '#36A2EB', '#FFCE56', '#66bb6a', '#9575cd', '#f06292', '#ff8a65', '#4dd0e1'];
 
-  const chartData = Object.entries(abonnements).map(([name, value], index) => ({
-    name,
-    population: value,
-    color: colors[index % colors.length],
-    legendFontColor: '#333',
-    legendFontSize: 14,
-  }));
+  const chartData = Object.entries(abonnements)
+    .filter(([_, value]) => typeof value === 'number' && isFinite(value) && value > 0)
+    .map(([name, value], index) => ({
+      name,
+      population: value,
+      color: colors[index % colors.length],
+      legendFontColor: '#333',
+      legendFontSize: 14,
+    }));
 
   const chartConfig = {
     backgroundGradientFrom: '#fff',
@@ -77,8 +73,13 @@ export default function StatsScreen() {
     color: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
   };
 
+  const subscriptionsSorted = Object.entries(abonnements).sort((a, b) => b[1] - a[1]);
+
+  const weeklyEstimate = totalMensuel / 4;
+  const dailyEstimate = totalMensuel / 30;
+
   return (
-    <ScrollView style={styles.container}>
+    <ScrollView contentContainerStyle={styles.container}>
       <Text style={styles.title}>📊 Statistiques</Text>
 
       {chartData.length > 0 ? (
@@ -97,54 +98,32 @@ export default function StatsScreen() {
 
       <Text style={styles.text}>Total mensuel estimé : {totalMensuel.toFixed(2)}€</Text>
       <Text style={styles.text}>Total annuel estimé : {totalAnnuel.toFixed(2)}€</Text>
-      <Text style={styles.summary}>Vous avez {Object.keys(abonnements).length} abonnement(s) actif(s).</Text>
+      <Text style={styles.text}>Par semaine : {weeklyEstimate.toFixed(2)}€</Text>
+      <Text style={styles.text}>Par jour : {dailyEstimate.toFixed(2)}€</Text>
 
-      {classement.length > 0 && (
-        <View style={styles.block}>
-          <Text style={styles.subtitle}>🏆 Classement des abonnements</Text>
-          {classement.map((item, i) => (
-            <Text key={i} style={styles.listItem}>
-              {i + 1}. {item.name} - {item.price.toFixed(2)}€/mois
+      {subscriptionsSorted.length > 0 && (
+        <>
+          <Text style={styles.subTitle}>🏆 Classement des abonnements</Text>
+          {subscriptionsSorted.map(([name, value], i) => (
+            <Text key={i} style={styles.ranking}>
+              {i + 1}. {name} — {value.toFixed(2)}€/mois
             </Text>
           ))}
-        </View>
+        </>
       )}
 
-      <View style={styles.block}>
-        <Text style={styles.subtitle}>📅 Estimations</Text>
-        <Text style={styles.listItem}>Par semaine : {(totalMensuel / 4).toFixed(2)}€</Text>
-        <Text style={styles.listItem}>Par jour : {(totalMensuel / 30).toFixed(2)}€</Text>
-      </View>
-
-      <View style={styles.block}>
-        <Text style={styles.subtitle}>📈 Dépenses mensuelles (estimées)</Text>
-        <LineChart
-          data={{
-            labels: ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Juin', 'Ce mois'],
-            datasets: [
-              {
-                data: monthlySpending,
-              },
-            ],
-          }}
-          width={screenWidth - 40}
-          height={220}
-          yAxisSuffix="€"
-          chartConfig={chartConfig}
-          bezier
-          style={{ marginTop: 10, borderRadius: 12 }}
-        />
-      </View>
+      <Text style={styles.summary}>
+        Vous avez {Object.keys(abonnements).length} abonnement(s) actif(s).
+      </Text>
     </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, paddingTop: 60, paddingHorizontal: 20, backgroundColor: '#fff' },
+  container: { paddingVertical: 40, paddingHorizontal: 20, backgroundColor: '#fff', paddingTop: 100 },
   title: { fontSize: 22, fontWeight: 'bold', textAlign: 'center', marginBottom: 15 },
   text: { fontSize: 16, textAlign: 'center', marginVertical: 5 },
   summary: { fontSize: 16, textAlign: 'center', marginTop: 10, fontStyle: 'italic' },
-  block: { marginTop: 30 },
-  subtitle: { fontSize: 18, fontWeight: '600', marginBottom: 8 },
-  listItem: { fontSize: 15, marginVertical: 2 },
+  subTitle: { fontSize: 18, fontWeight: 'bold', marginTop: 20, marginBottom: 10 },
+  ranking: { fontSize: 15, marginVertical: 2 },
 });

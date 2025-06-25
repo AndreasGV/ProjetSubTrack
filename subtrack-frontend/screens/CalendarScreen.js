@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   View,
   Text,
@@ -13,6 +13,7 @@ import moment from 'moment';
 import 'moment/locale/fr';
 import { supabase } from '../supabaseClient';
 import { logoMap } from '../assets/logoMap';
+import { useFocusEffect } from '@react-navigation/native';
 
 const numColumns = 7;
 const screenWidth = Dimensions.get('window').width;
@@ -25,10 +26,12 @@ export default function CalendarScreen() {
   const [modalVisible, setModalVisible] = useState(false);
   const [modalContent, setModalContent] = useState([]);
 
-  useEffect(() => {
-    generateCalendar();
-    loadSubscriptions();
-  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      generateCalendar();
+      loadSubscriptions();
+    }, [])
+  );
 
   const generateCalendar = () => {
     const today = moment();

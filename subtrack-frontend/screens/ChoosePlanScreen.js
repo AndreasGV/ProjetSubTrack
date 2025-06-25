@@ -8,8 +8,11 @@ export default function ChoosePlanScreen() {
   const navigation = useNavigation();
   const { id, name, logo, category, plans } = route.params;
 
-  const [selectedPlan, setSelectedPlan] = useState(plans[0]);
+  const [selectedPlan, setSelectedPlan] = useState(null);
+  const [customPrice, setCustomPrice] = useState('');
   const [day, setDay] = useState('');
+
+  const allPlans = [{ name: 'Personnalisé', price: null, frequency: '' }, ...plans];
 
   const handleSubmit = async () => {
     const { data: userData, error: userError } = await supabase.auth.getUser();
@@ -23,12 +26,24 @@ export default function ChoosePlanScreen() {
       return;
     }
 
+    const priceToUse =
+      selectedPlan?.price !== null && selectedPlan?.price !== undefined
+        ? selectedPlan.price
+        : parseFloat(customPrice);
+
+    if (isNaN(priceToUse) || priceToUse < 0) {
+      Alert.alert("Erreur", "Prix invalide.");
+      return;
+    }
+
+    const planName = selectedPlan?.name || 'Perso';
+
     const { error } = await supabase.from('abonnements_utilisateurs').insert([
       {
         user_id: userData.user.id,
         abonnement_id: id,
-        plan_name: selectedPlan.name,
-        plan_price: selectedPlan.price,
+        plan_name: planName,
+        plan_price: priceToUse,
         payment_day: parseInt(day, 10),
       },
     ]);
@@ -45,22 +60,36 @@ export default function ChoosePlanScreen() {
       <Text style={styles.title}>Choisir un plan pour {name}</Text>
 
       <FlatList
-        data={plans}
+        data={allPlans}
         keyExtractor={(item) => item.name}
         renderItem={({ item }) => (
           <TouchableOpacity
             style={[
               styles.plan,
-              item.name === selectedPlan.name && styles.selected,
+              selectedPlan?.name === item.name && styles.selected,
             ]}
             onPress={() => setSelectedPlan(item)}
           >
             <Text style={styles.planText}>{item.name}</Text>
-            <Text>{item.price}€ / {item.frequency}</Text>
+            {item.price !== null ? (
+              <Text>{item.price}€ / {item.frequency}</Text>
+            ) : (
+              <Text>Entrer un prix personnalisé</Text>
+            )}
           </TouchableOpacity>
         )}
         contentContainerStyle={{ paddingBottom: 20 }}
       />
+
+      {(!selectedPlan || selectedPlan.price === null) && (
+        <TextInput
+          placeholder="Prix personnalisé (€)"
+          keyboardType="numeric"
+          value={customPrice}
+          onChangeText={setCustomPrice}
+          style={styles.input}
+        />
+      )}
 
       <TextInput
         placeholder="Jour de paiement (1 à 31)"
@@ -97,14 +126,15 @@ const styles = StyleSheet.create({
     borderColor: '#ccc',
     padding: 12,
     borderRadius: 8,
-    marginTop: 20,
-    marginBottom: 20,
+    marginTop: 10,
+    marginBottom: 10,
   },
   button: {
     backgroundColor: '#008b53',
     padding: 16,
     borderRadius: 12,
     alignItems: 'center',
+    marginTop: 10,
   },
   buttonText: { color: 'white', fontSize: 16, fontWeight: 'bold' },
 });

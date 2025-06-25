@@ -3,6 +3,9 @@ const cors = require('cors');
 const bodyParser = require('body-parser');
 const dotenv = require('dotenv');
 const authRoutes = require('./routes/auth');
+const notificationRoutes = require('./routes/notifications'); 
+const registerRoutes = require('./routes/registerPushToken'); 
+const { checkAndNotify } = require('./scheduler');
 
 dotenv.config();
 
@@ -11,6 +14,8 @@ app.use(cors());
 app.use(bodyParser.json());
 
 app.use('/api/auth', authRoutes);
+app.use('/api/notifications', notificationRoutes);
+app.use('/api/notifications', registerRoutes);
 
 app.get('/', (req, res) => {
   res.send('API SubTrack opérationnelle 🚀');
@@ -18,5 +23,10 @@ app.get('/', (req, res) => {
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-  console.log(`Serveur backend en écoute sur http://localhost:${PORT}`);
+  console.log(`✅ Serveur backend opérationnel sur http://localhost:${PORT}`);
 });
+
+// Lancement automatique du système de notifications toutes les minutes
+setInterval(() => {
+  checkAndNotify();
+}, 60 * 1000); // toutes les minutes
