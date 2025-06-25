@@ -1,12 +1,13 @@
 const express = require('express');
 const router = express.Router();
-console.log('📥 Reçu token à enregistrer :', { user_id, token });
 const supabase = require('../supabaseClient');
 require('dotenv').config();
 
 // POST /api/notifications/register
 router.post('/register', async (req, res) => {
   const { user_id, token } = req.body;
+
+  console.log('📥 Reçu token à enregistrer :', { user_id, token });
 
   if (!user_id || !token) {
     return res.status(400).json({ error: 'user_id et token sont requis.' });
