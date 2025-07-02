@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const supabase = require('../supabase');
+const supabase = require('../supabaseClient');
 
 // GET /api/suggestions/:userId
 router.get('/:userId', async (req, res) => {

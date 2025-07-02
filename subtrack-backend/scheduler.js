@@ -1,6 +1,6 @@
 const supabase = require('./supabaseClient');
 const fetch = require('node-fetch');
-const moment = require('moment');
+const moment = require('moment'); // npm i dayjs a la place de moment
 
 async function checkAndNotify() {
   const today = moment().startOf('day');
